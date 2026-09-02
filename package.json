@@ -1,12 +1,12 @@
 {
-  "name": "school-portal-proxy",
-  "private": true,
+  "name": "unblock",
   "version": "1.0.0",
+  "private": true,
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"
   },
   "devDependencies": {
-    "wrangler": "^4.35.0"
+    "wrangler": "^4.0.0"
   }
 }
