@@ -1,0 +1,9 @@
+name = "school-portal-proxy"
+main = "src/index.js"
+compatibility_date = "2026-09-02"
+workers_dev = true
+
+# Add domains you own or are authorized to proxy here.
+# Example:
+# [vars]
+# ALLOWED_HOSTS = "example.com,docs.example.com"
