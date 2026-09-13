@@ -1,4 +1,4 @@
-# School Portal Proxy — Authorized Use
+## THIS README IS OUTDATED
 
 A small Cloudflare Workers portal that fetches only domains you explicitly allow.
 
