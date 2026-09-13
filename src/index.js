@@ -114,6 +114,10 @@ body {
   opacity: 0.35;
 }
 
+.nav-button.active {
+  color: #8ab4f8;
+}
+
 
 /* ADDRESS BAR */
 
@@ -499,6 +503,14 @@ body {
       ↻
     </button>
 
+    <button
+      class="nav-button"
+      id="adblockButton"
+      title="Ad blocking"
+    >
+      🛡
+    </button>
+
 
     <div class="address-wrapper">
 
@@ -633,11 +645,11 @@ body {
 
     <div class="blocked-card">
 
-      <h2>
+      <h2 id="blockedTitle">
         This website may not support embedding
       </h2>
 
-      <p>
+      <p id="blockedMessage">
         Some websites prevent themselves from being displayed
         inside another website for security reasons.
       </p>
@@ -700,10 +712,118 @@ const homeGo =
 const openDirect =
   document.getElementById("openDirect");
 
+const adblockButton =
+  document.getElementById("adblockButton");
+
+const blockedTitle =
+  document.getElementById("blockedTitle");
+
+const blockedMessage =
+  document.getElementById("blockedMessage");
+
 
 let historyList = [];
 let historyPosition = -1;
 let currentURL = "";
+let pendingURL = "";
+let blockedMode = "embed";
+
+let adBlockEnabled =
+  localStorage.getItem("wenAdBlock") !== "off";
+
+
+/* AD / TRACKER BLOCKLIST */
+/* Common ad-serving and tracking domains. Navigation to these
+   hosts (or their subdomains) is refused when ad blocking is on. */
+
+const BLOCK_HOSTS = new Set([
+  "doubleclick.net",
+  "googlesyndication.com",
+  "googleadservices.com",
+  "google-analytics.com",
+  "googletagmanager.com",
+  "googletagservices.com",
+  "adservice.google.com",
+  "amazon-adsystem.com",
+  "adnxs.com",
+  "adsrvr.org",
+  "taboola.com",
+  "outbrain.com",
+  "criteo.com",
+  "criteo.net",
+  "scorecardresearch.com",
+  "quantserve.com",
+  "moatads.com",
+  "pubmatic.com",
+  "rubiconproject.com",
+  "casalemedia.com",
+  "openx.net",
+  "smartadserver.com",
+  "adform.net",
+  "bidswitch.net",
+  "rlcdn.com",
+  "mathtag.com",
+  "contextweb.com",
+  "yieldmo.com",
+  "sharethrough.com",
+  "media.net",
+  "adroll.com",
+  "revcontent.com",
+  "mgid.com",
+  "propellerads.com",
+  "popads.net",
+  "popcash.net",
+  "exoclick.com",
+  "juicyads.com",
+  "trafficjunky.com",
+  "zedo.com",
+  "connect.facebook.net",
+  "ads-twitter.com",
+  "bat.bing.com",
+  "hotjar.com",
+  "mouseflow.com",
+  "fullstory.com"
+]);
+
+function isBlockedHost(url) {
+
+  let hostname;
+
+  try {
+    hostname = new URL(url).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+
+  for (const blocked of BLOCK_HOSTS) {
+
+    if (
+      hostname === blocked ||
+      hostname.endsWith("." + blocked)
+    ) {
+      return true;
+    }
+
+  }
+
+  return false;
+
+}
+
+
+function updateAdblockButton() {
+
+  adblockButton.classList.toggle(
+    "active",
+    adBlockEnabled
+  );
+
+  adblockButton.title =
+    adBlockEnabled
+      ? "Ad blocking: On"
+      : "Ad blocking: Off";
+
+}
 
 
 /* NORMALIZE URL */
@@ -779,12 +899,45 @@ function stopLoading() {
 
 function loadWebsite(
   input,
-  addHistory = true
+  addHistory = true,
+  bypassBlock = false
 ) {
 
   const url = normalizeURL(input);
 
   if (!url) return;
+
+
+  if (
+    adBlockEnabled &&
+    !bypassBlock &&
+    isBlockedHost(url)
+  ) {
+
+    pendingURL = url;
+    blockedMode = "adblock";
+
+    blockedTitle.textContent =
+      "This address was blocked";
+
+    blockedMessage.textContent =
+      "Wen Browser blocked this because it matches a known ad or tracker domain.";
+
+    openDirect.textContent =
+      "Load Anyway";
+
+    currentURL = url;
+    addressBar.value = url;
+
+    home.style.display = "none";
+    viewer.hidden = true;
+    blocked.style.display = "flex";
+
+    updateButtons();
+
+    return;
+
+  }
 
 
   currentURL = url;
@@ -1006,7 +1159,28 @@ openDirect.addEventListener(
   "click",
   () => {
 
-    if (currentURL) {
+    if (
+      blockedMode === "adblock" &&
+      pendingURL
+    ) {
+
+      const url = pendingURL;
+
+      pendingURL = "";
+      blockedMode = "embed";
+
+      blockedTitle.textContent =
+        "This website may not support embedding";
+
+      blockedMessage.textContent =
+        "Some websites prevent themselves from being displayed inside another website for security reasons.";
+
+      openDirect.textContent =
+        "Open Website Directly ↗";
+
+      loadWebsite(url, true, true);
+
+    } else if (currentURL) {
 
       window.location.href =
         currentURL;
@@ -1015,6 +1189,27 @@ openDirect.addEventListener(
 
   }
 );
+
+
+/* AD BLOCK TOGGLE */
+
+adblockButton.addEventListener(
+  "click",
+  () => {
+
+    adBlockEnabled = !adBlockEnabled;
+
+    localStorage.setItem(
+      "wenAdBlock",
+      adBlockEnabled ? "on" : "off"
+    );
+
+    updateAdblockButton();
+
+  }
+);
+
+updateAdblockButton();
 
 
 updateButtons();
